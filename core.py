@@ -4,9 +4,8 @@ from shapely.geometry import box
 import pandas as pd
 
 # Add webservice or dataset to automatically get the parcel boundaries
-# Connect rate to class
-# Only output the rates and class
 # Smoothen out how did i do it?
+# Add input field for the output file
 
 class Core:
     def __init__(self, data, boundary=None):
@@ -55,16 +54,48 @@ class Core:
             bins=self.custom_bins,
             include_lowest=True
         )
+    def add_rate(self):
+        """Assign rates to each row based on class intervals."""
+        if not hasattr(self, "rates"):
+            return
+        
+        intervals = self.zones["class"].cat.categories
+        rate_mapping = dict(zip(intervals, self.rates))
+        self.zones["rate"] = self.zones["class"].map(rate_mapping)
+
 
     def dissolve_per_class(self):
-        gdf = self.zones.dissolve(by='class')
+        # Ensure class and rate columns exist in original data
+        if 'class' not in self.zones.columns or 'rate' not in self.zones.columns:
+            raise ValueError("Missing 'class' or 'rate' column.")
+
+        # Dissolve by class, keeping the first rate (all rates per class are identical)
+        gdf = self.zones.dissolve(by='class', aggfunc={'rate': 'first'})
+        
+        # Explode multipolygons into single parts
+        gdf = gdf.explode(ignore_index=True)
+        
+        # Add unique ID for each polygon (starting from 1)
+        gdf['id'] = range(1, len(gdf) + 1)
+        
+        # Select desired columns: id, rate, geometry
+        gdf = gdf[['id', 'rate', 'geometry']]
+        
+        # Handle CRS before export
+        if gdf.crs is None:
+            # Set appropriate CRS (e.g., EPSG:28992 for RD New in Netherlands)
+            gdf = gdf.set_crs(epsg=28992)
+        
+        # Export to WGS84 shapefile
         gdf.to_crs(epsg=4326).to_file(r"C:\Users\adria\Downloads\jef deelen tegenover erf bestanden\Data\kaartje.shp")
+
 
     def create_taskmap(self):
         self.create_grid()
         self.join_by_nearest(self.grid, self.data)
         self.get_target_columns()
         self.create_classes()
+        self.add_rate()
         self.dissolve_per_class()
 
 
