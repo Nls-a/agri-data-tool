@@ -7,7 +7,7 @@ import pandas as pd
 # Connect rate to class
 # Only output the rates and class
 # Smoothen out how did i do it?
-# IDW --> Contour polygons? could be a simple solution 
+
 class Core:
     def __init__(self, data, boundary=None):
         self.data = gpd.read_file(data).set_crs(epsg=4326)
@@ -43,16 +43,16 @@ class Core:
 
     def create_classes(self):
         # insert standard options comparable to dacom equal interval, etc and 5% increase add variable amount of classes
-        amount_of_classes = 5
-        min_value = self.data[self.target_column].min()
-        max_value = self.data[self.target_column].max()
 
-        bins = np.linspace(min_value, max_value, 6)
+        if not hasattr(self, "custom_bins"):
+            min_value = self.data[self.target_column].min()
+            max_value = self.data[self.target_column].max()
+
+            self.custom_bins = np.linspace(min_value, max_value, 6)
 
         self.zones["class"] = pd.cut(
             self.zones[self.target_column],
-            bins=bins,
-            labels=[1, 2, 3, 4, 5],
+            bins=self.custom_bins,
             include_lowest=True
         )
 
@@ -94,8 +94,8 @@ class Core:
 
 
 
-data_path = r"C:\Users\adria\Downloads\jef deelen tegenover erf bestanden\Data\data.shp"
-boundary_path = r"C:\Users\adria\Downloads\cropfields_49058_20260410_194726\export.shp"
-test = Core(data_path, boundary_path)
+# data_path = r"C:\Users\adria\Downloads\jef deelen tegenover erf bestanden\Data\data.shp"
+# boundary_path = r"C:\Users\adria\Downloads\cropfields_49058_20260410_194726\export.shp"
+# test = Core(data_path, boundary_path)
 
-test.create_taskmap()
+# test.create_taskmap()
