@@ -67,6 +67,33 @@ class Core:
         self.create_classes()
         self.dissolve_per_class()
 
+
+    # Finish later for now join by nearest can work as well
+    def idw_interpolation(self, known_points, known_values, query_points, power=2):
+        """
+        known_points: array of shape (n, 2) with x, y coordinates
+        known_values: array of shape (n,) with values at known points
+        query_points: array of shape (m, 2) with points to interpolate
+        power: IDW power parameter (default=2)
+        """
+        results = []
+        for qp in query_points:
+            distances = np.sqrt(np.sum((known_points - qp) ** 2, axis=1))
+            
+            # If query point coincides with a known point, return its value
+            if np.any(distances == 0):
+                results.append(known_values[distances == 0][0])
+                continue
+            
+            weights = 1 / distances ** power
+            interpolated = np.sum(weights * known_values) / np.sum(weights)
+            results.append(interpolated)
+        
+        return np.array(results)
+    
+
+
+
 data_path = r"C:\Users\adria\Downloads\jef deelen tegenover erf bestanden\Data\data.shp"
 boundary_path = r"C:\Users\adria\Downloads\cropfields_49058_20260410_194726\export.shp"
 test = Core(data_path, boundary_path)
